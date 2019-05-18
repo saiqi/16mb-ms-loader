@@ -1,0 +1,12 @@
+docker-compose.yml
+.idea/
+__pycache__/
+.pytest_cache/
+notebooks/
+core.*
+venv/
+.venv/
+.che/
+.cache/
+
+.vscode
