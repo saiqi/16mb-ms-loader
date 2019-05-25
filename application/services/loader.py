@@ -19,6 +19,7 @@ class ErrorHandler(DependencyProvider):
         exc_type, exc, tb = exc_info
         _log.error(str(exc))
 
+
 class LoaderServiceError(Exception):
     pass
 
@@ -52,26 +53,26 @@ class LoaderService(object):
             raise LoaderServiceError('Bad formated meta')
 
         if write_policy == 'insert':
-            self.datastore.insert(target_table, records, meta)
+            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
         elif write_policy == 'upsert':
-            self.datastore.upsert(target_table, upsert_key, records, meta)
+            self.datastore.upsert(target_table, upsert_key, bson.json_util.dumps(records), meta)
         elif write_policy == 'bulk_insert':
             self.datastore.bulk_insert(
-                target_table, records, meta, chunk_size=chunk_size)
+                target_table, bson.json_util.dumps(records), meta, chunk_size=chunk_size)
         elif write_policy == 'delete_insert':
             self.datastore.delete(target_table, delete_keys)
-            self.datastore.insert(target_table, records, meta)
+            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
         elif write_policy == 'delete_bulk_insert':
             self.datastore.delete(target_table, delete_keys)
             self.datastore.bulk_insert(
-                target_table, records, meta, chunk_size=chunk_size)
+                target_table, bson.json_util.dumps(records), meta, chunk_size=chunk_size)
         elif write_policy == 'truncate_insert':
             self.datastore.truncate(target_table)
-            self.datastore.insert(target_table, records, meta)
+            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
         else:
             self.datastore.truncate(target_table)
             self.datastore.bulk_insert(
-                target_table, records, meta, chunk_size=chunk_size)
+                target_table, bson.json_util.dumps(records), meta, chunk_size=chunk_size)
 
         _log.info('Datastore microservice wrote all the records !')
         return {'target_table': target_table, 'count': len(records)}
@@ -192,5 +193,7 @@ class LoaderService(object):
         datastore = input_['datastore']
         for d in datastore:
             self.write(**d)
-        self.dispatch('input_loaded', {'id': input_[
-                      'id'], 'checksum': input_['checksum']})
+        self.dispatch('input_loaded', {
+            'id': input_['id'],
+            'checksum': input_.get('checksum', None),
+            'meta': input_.get('meta', None)})
