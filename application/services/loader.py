@@ -193,7 +193,8 @@ class LoaderService(object):
         datastore = input_['datastore']
         for d in datastore:
             self.write(**d)
-        self.dispatch('input_loaded', {
+        ack = bson.json_util.dumps({
             'id': input_['id'],
             'checksum': input_.get('checksum', None),
             'meta': input_.get('meta', None)})
+        self.dispatch('input_loaded', ack)
