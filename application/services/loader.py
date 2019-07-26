@@ -53,22 +53,26 @@ class LoaderService(object):
             raise LoaderServiceError('Bad formated meta')
 
         if write_policy == 'insert':
-            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
+            self.datastore.insert(
+                target_table, bson.json_util.dumps(records), meta)
         elif write_policy == 'upsert':
-            self.datastore.upsert(target_table, upsert_key, bson.json_util.dumps(records), meta)
+            self.datastore.upsert(target_table, upsert_key,
+                                  bson.json_util.dumps(records), meta)
         elif write_policy == 'bulk_insert':
             self.datastore.bulk_insert(
                 target_table, bson.json_util.dumps(records), meta, chunk_size=chunk_size)
         elif write_policy == 'delete_insert':
             self.datastore.delete(target_table, delete_keys)
-            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
+            self.datastore.insert(
+                target_table, bson.json_util.dumps(records), meta)
         elif write_policy == 'delete_bulk_insert':
             self.datastore.delete(target_table, delete_keys)
             self.datastore.bulk_insert(
                 target_table, bson.json_util.dumps(records), meta, chunk_size=chunk_size)
         elif write_policy == 'truncate_insert':
             self.datastore.truncate(target_table)
-            self.datastore.insert(target_table, bson.json_util.dumps(records), meta)
+            self.datastore.insert(
+                target_table, bson.json_util.dumps(records), meta)
         else:
             self.datastore.truncate(target_table)
             self.datastore.bulk_insert(
@@ -110,7 +114,7 @@ class LoaderService(object):
             self.metadata.update_process_date(t['id'])
         elif t['type'] in ('transform', 'predict',) and t['materialized'] is True:
             _log.info(
-                'Transformation has been set as materialized \"tranform\" or \"predict\" kind. This must be processed !')
+                'Transformation has been set as materialized \"transform\" or \"predict\" kind. This must be processed !')
             if t['parameters'] is None:
                 _log.info('No parameters truncating the table ...')
                 self.datastore.truncate(t['target_table'])
@@ -123,11 +127,12 @@ class LoaderService(object):
                         'Does not support transformation with multiple parameters')
                 param_name = t['parameters'][0]
                 if param_value is None:
-                    raise LoaderServiceError('Transformation requires a parameter')
+                    raise LoaderServiceError(
+                        'Transformation requires a parameter')
                 _log.info(
-                    'No parameters. We will delete the previous result according to the provided parameter')
+                    'We will delete the previous result according to the provided parameter')
                 self.datastore.delete(t['target_table'], {
-                                        param_name: param_value})
+                    param_name: param_value})
                 _log.info('Inserting the result ...')
                 self.datastore.insert_from_select(
                     t['target_table'], t['output'], [param_value])
@@ -187,7 +192,10 @@ class LoaderService(object):
         datastore = input_['datastore']
         for d in datastore:
             res = self.write(**d)
-            self.update_transformations(res['target_table'], d.get('delete_keys', None))
+            d_keys = d.get('delete_keys', None)
+            param_value = d_keys.values()[0] if d_keys else None
+            self.update_transformations(
+                res['target_table'], param_value=param_value)
         ack = bson.json_util.dumps({
             'id': input_['id'],
             'checksum': input_.get('checksum', None),
