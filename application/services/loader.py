@@ -193,7 +193,7 @@ class LoaderService(object):
         for d in datastore:
             res = self.write(**d)
             d_keys = d.get('delete_keys', None)
-            param_value = d_keys.values()[0] if d_keys else None
+            param_value = list(d_keys.values())[0] if d_keys else None
             self.update_transformations(
                 res['target_table'], param_value=param_value)
         ack = bson.json_util.dumps({
