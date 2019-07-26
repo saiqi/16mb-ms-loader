@@ -111,40 +111,34 @@ class LoaderService(object):
         elif t['type'] in ('transform', 'predict',) and t['materialized'] is True:
             _log.info(
                 'Transformation has been set as materialized \"tranform\" or \"predict\" kind. This must be processed !')
-            try:
-                if t['parameters'] is None:
-                    _log.info('No parameters truncating the table ...')
-                    self.datastore.truncate(t['target_table'])
-                    _log.info('Inserting the result ...')
-                    self.datastore.insert_from_select(
-                        t['target_table'], t['output'], None)
-                else:
-                    if len(t['parameters']) > 1:
-                        _log.error(
-                            'Multiple parameters has been provided which is currently not supported !')
-                        raise BadRequest(
-                            'Does not support transformation with multiple parameters')
-                    param_name = t['parameters'][0]
-                    if param_value is None:
-                        _log.error(
-                            'The transformation requires a parameter which looks empty or missing !')
-                        raise BadRequest('Transformation requires a parameter')
-                    _log.info(
-                        'No parameters. We will delete the previous result according to the provided parameter')
-                    self.datastore.delete(t['target_table'], {
-                                          param_name: param_value})
-                    _log.info('Inserting the result ...')
-                    self.datastore.insert_from_select(
-                        t['target_table'], t['output'], [param_value])
-            except:
-                raise LoaderServiceError(
-                    'An error occured while computing transformation {}'.format(t['id']))
+            if t['parameters'] is None:
+                _log.info('No parameters truncating the table ...')
+                self.datastore.truncate(t['target_table'])
+                _log.info('Inserting the result ...')
+                self.datastore.insert_from_select(
+                    t['target_table'], t['output'], None)
+            else:
+                if len(t['parameters']) > 1:
+                    raise LoaderServiceError(
+                        'Does not support transformation with multiple parameters')
+                param_name = t['parameters'][0]
+                if param_value is None:
+                    raise LoaderServiceError('Transformation requires a parameter')
+                _log.info(
+                    'No parameters. We will delete the previous result according to the provided parameter')
+                self.datastore.delete(t['target_table'], {
+                                        param_name: param_value})
+                _log.info('Inserting the result ...')
+                self.datastore.insert_from_select(
+                    t['target_table'], t['output'], [param_value])
             _log.info('Updating process date in metadata ...')
             self.metadata.update_process_date(t['id'])
 
     def update_transformations(self, trigger_table, param_value=None):
+        _log.info(f'Updating transformation related to {trigger_table} ...')
         meta = self.metadata.get_update_pipeline(trigger_table)
         if not meta:
+            _log.info('Nothing to do ...')
             return {'trigger_table': trigger_table}
         pipeline = bson.json_util.loads(meta)
         for job in pipeline:
@@ -192,7 +186,8 @@ class LoaderService(object):
                 self.update_entry_ngrams(evt['id'])
         datastore = input_['datastore']
         for d in datastore:
-            self.write(**d)
+            res = self.write(**d)
+            self.update_transformations(res['target_table'], d.get('delete_keys', None))
         ack = bson.json_util.dumps({
             'id': input_['id'],
             'checksum': input_.get('checksum', None),
