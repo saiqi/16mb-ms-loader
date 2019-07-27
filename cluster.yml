@@ -1,6 +1,6 @@
 AMQP_URI: pyamqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
 # rpc_exchange: 'ms-queue'
-max_workers: 10
+max_workers: 1
 
 LOGGING:
     version: 1
