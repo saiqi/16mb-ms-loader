@@ -33,6 +33,7 @@ class LoaderService(object):
     dispatch = EventDispatcher()
     error = ErrorHandler()
 
+    @rpc
     def write(self, write_policy, meta, target_table, records, upsert_key=None, delete_keys=None, chunk_size=None):
         _log.info(
             f'Writing in {target_table} using {write_policy} strategy ...')
