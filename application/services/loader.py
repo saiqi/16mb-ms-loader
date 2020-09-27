@@ -171,6 +171,10 @@ class LoaderService(object):
         data = self.referential.add_event(**data)
         return {'id': data['id']}
 
+    def add_informations_to_entity(self, data):
+        data = self.referential.add_informations_to_entity(data['id'], data)
+        return {'id': data['id']}
+
     @consume(queue=Queue(name='evt_all_inputs',
                          exchange=Exchange(name='all_inputs', type='topic', auto_delete=True)))
     def handle_all_inputs(self, payload):
@@ -190,6 +194,10 @@ class LoaderService(object):
             for e in ref['events']:
                 evt = self.add_event(e)
                 self.update_entry_ngrams(evt['id'])
+        if ref.get('informations', None):
+            _log.info('Handling informations ...')
+            for e in ref['informations']:
+                self.add_informations_to_entity(e)
         datastore = input_['datastore']
         for d in datastore:
             res = self.write(**d)
